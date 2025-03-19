@@ -41,10 +41,16 @@ def train():
 
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
+    training_args.evaluation_strategy = "steps"
     training_args.eval_steps = 100
+    training_args.per_device_eval_batch_size = 8
+    training_args.load_best_model_at_end = True
+    training_args.metric_for_best_model="accuracy"
+
     training_args.save_strategy = "steps"
     training_args.save_steps = 100
-    training_args.load_best_model_at_end = True
+    training_args.save_total_limit = 3
+
     data_args.eval_datasets = "eval-ocr"
 
     print("训练集路径:", data_args.datasets)
