@@ -27,9 +27,10 @@ from GOT.model import *
 from GOT.data import make_supervised_data_module
 from GOT.utils.arguments import *
 from GOT.utils.constants import *
-from GOT.utils.utils import smart_tokenizer_and_embedding_resize
+from GOT.utils.utils import smart_tokenizer_and_embedding_resize, add_arguments
 from GOT.model.vision_encoder.vary_b import build_vary_vit_b
 import os
+import functools
 
 # os.environ['NCCL_IB_DISABLE'] = '1'
 os.environ['NCCL_DEBUG'] = 'INFO'
@@ -37,15 +38,22 @@ os.environ['OSS_ENDPOINT'] = "http://oss.i.shaipower.com"
 
 def train():
     parser = transformers.HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
+
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
+    training_args.eval_steps = 100
+    training_args.save_strategy = "steps"
+    training_args.save_steps = 100
+    training_args.load_best_model_at_end = True
+    data_args.eval_datasets = "eval-ocr"
+
+    print("训练集路径:", data_args.datasets)
+    print("验证集路径:", data_args.eval_datasets)
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(model_args.model_name_or_path, trust_remote_code=True, padding_side="right", model_max_length=training_args.model_max_length,)
 
 
     model = GOTQwenForCausalLM.from_pretrained(model_args.model_name_or_path, use_safetensors=True)
-
-
 
     smart_tokenizer_and_embedding_resize(
         special_tokens_dict=dict(pad_token='<|endoftext|>'),

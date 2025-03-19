@@ -62,7 +62,23 @@ def make_supervised_data_module(interleave, with_box, tokenizer, data_args):
             box_limit=data_args.box_limit,
         )
     )
+    # 新增验证集加载逻辑
+    eval_dataset = None
+    if hasattr(data_args, "eval_datasets") and data_args.eval_datasets is not None:
+        eval_dataset = dataset_cls(
+            tokenizer=tokenizer,
+            datasets=data_args.eval_datasets,  # 假设 data_args 包含 eval_datasets 参数
+            multimodal_cfg=dict(
+                sep_image_conv_front=data_args.sep_image_conv_front,
+                image_token_len=data_args.image_token_len,
+                image_aspect_ratio=data_args.image_aspect_ratio,
+                use_im_start_end=data_args.use_im_start_end,
+                image_processor=data_args.image_processor,
+                image_processor_high=data_args.image_processor_high,
+                box_limit=data_args.box_limit,
+            )
+        )    
     data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer)
     return dict(train_dataset=train_dataset,
-                eval_dataset=None,
+                eval_dataset=eval_dataset,
                 data_collator=data_collator)

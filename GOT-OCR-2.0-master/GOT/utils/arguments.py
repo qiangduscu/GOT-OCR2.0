@@ -18,6 +18,7 @@ class ModelArguments:
 @dataclass
 class DataArguments:
     datasets: str = field(default=None, metadata={"help": "combinations of the training data."})
+    eval_datasets : str = field(default=None, metadata={"help": "combinations of the training data."})
     sep_image_conv_front: bool = False
     image_token_len: int = 256
     image_aspect_ratio: str = 'square'

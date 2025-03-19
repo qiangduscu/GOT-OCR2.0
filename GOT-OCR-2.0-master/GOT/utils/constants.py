@@ -23,12 +23,12 @@ DEFAULT_IM_END_TOKEN = '</img>'
 CONVERSATION_DATA = {
 
     'data_1': {
-        'images': '/path/',
-        'annotations': '/path/data1.json',
+        'images': '/home/cncs-ai/work/deep_learning/GOT-OCR2.0/dataset/',
+        'annotations': '/home/cncs-ai/work/deep_learning/GOT-OCR2.0/dataset/sx.json',
     },
     'data_2': {
-        'images': '/path/',
-        'annotations': '/path/data2.json',
+        'images': '/home/cncs-ai/work/deep_learning/GOT-OCR2.0/dataset/',
+        'annotations': '/home/cncs-ai/work/deep_learning/GOT-OCR2.0/dataset/sx_valid.json',
     },
     'data_3': {
         'images': '/path/',
