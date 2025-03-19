@@ -1,0 +1,7 @@
+benchmarks/
+dataset/
+output/
+GOT_weights/
+GOT-OCR-2.0-master/GOT.egg-info/
+**/=*
+**/__pycache__/
