@@ -31,10 +31,19 @@ from GOT.utils.utils import smart_tokenizer_and_embedding_resize, add_arguments
 from GOT.model.vision_encoder.vary_b import build_vary_vit_b
 import os
 import functools
+from sklearn.metrics import accuracy_score, f1_score
+import numpy as np
 
 # os.environ['NCCL_IB_DISABLE'] = '1'
 os.environ['NCCL_DEBUG'] = 'INFO'
 os.environ['OSS_ENDPOINT'] = "http://oss.i.shaipower.com"
+
+def compute_metrics(eval_pred):
+    logits, labels = eval_pred
+    preds = np.argmax(logits, axis=-1)
+    accuracy = accuracy_score(labels, preds)
+    f1 = f1_score(labels, preds, average="macro")
+    return {"accuracy": accuracy, "f1": f1}
 
 def train():
     parser = transformers.HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
@@ -42,13 +51,14 @@ def train():
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
     training_args.evaluation_strategy = "steps"
-    training_args.eval_steps = 100
+    training_args.eval_steps = 500
     training_args.per_device_eval_batch_size = 8
+    # training_args.metric_for_best_model = "accuracy"  # 或其他自定义指标名称（如"f1"）
+    # training_args.greater_is_better = True  # 如果指标越大越好（如准确率），False则相反（如loss）
     training_args.load_best_model_at_end = True
-    training_args.metric_for_best_model="accuracy"
 
     training_args.save_strategy = "steps"
-    training_args.save_steps = 100
+    training_args.save_steps = 500
     training_args.save_total_limit = 3
 
     data_args.eval_datasets = "eval-ocr"
@@ -147,6 +157,7 @@ def train():
         model=model,
         tokenizer=tokenizer,
         args=training_args,
+        # compute_metrics=compute_metrics,  # 模型评估指标
         **data_module)
 
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):

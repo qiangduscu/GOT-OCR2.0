@@ -35,8 +35,16 @@ class ConversationDataset(BaseDataset):
 
         # TODO add your data  [data1, data2, data3, .....]
         got_data_dict = {
-            "pdf-ocr": ["data_1"],
-            "eval-ocr": ["data_2"],
+            "pdf-ocr": [
+                'data_BL', 'data_DX', 'data_DZ', 'data_FG', 'data_FZ',
+                'data_GL', 'data_HN', 'data_HX', 'data_JX', 'data_KB',
+                'data_LC', 'data_LG', 'data_LK', 'data_LZ', 'data_PH',
+                'data_PN', 'data_PQ', 'data_QL', 'data_QS', 'data_RB',
+                'data_SK', 'data_SR', 'data_SX', 'data_SZ', 'data_WJ',
+                'data_WX', 'data_WY', 'data_WZ', 'data_XZ', 'data_YB', 'data_YG',
+                'data_YN', 'data_ZC', 'data_ZH', 'data_ZX', 'data_ZY'
+            ],
+            "eval-ocr": ['data_HF', 'data_MK', 'data_BY', 'data_PL', 'data_ZJ', 'data_RY'],
             # 'scene-ocr': ["data3", "data4"]
             # ......
         }

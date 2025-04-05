@@ -31,9 +31,13 @@ from io import BytesIO
 from GOT.model.plug.blip_process import BlipImageEvalProcessor
 
 from transformers import TextStreamer
-from GOT.model.plug.transforms import train_transform, test_transform
+# from GOT.model.plug.transforms import train_transform, test_transform
 import re
 from GOT.demo.process_results import punctuation_dict, svg_to_html
+
+from PIL import Image
+import base64
+from io import BytesIO
 
 DEFAULT_IMAGE_TOKEN = "<image>"
 DEFAULT_IMAGE_PATCH_TOKEN = '<imgpad>'
@@ -54,6 +58,18 @@ def load_image(image_file):
         image = Image.open(image_file).convert('RGB')
     return image
 
+def load_image_from_base64(base64_str):
+    # 处理包含Data URL前缀的情况（如："data:image/png;base64,..."）
+    if base64_str.startswith('data:'):
+        base64_str = base64_str.split(',', 1)[1]  # 提取Base64数据部分
+    
+    # 解码Base64字符串为二进制数据
+    image_data = base64.b64decode(base64_str)
+    # 将字节数据转换为文件流
+    image_stream = BytesIO(image_data)
+    # 打开图像并转换为RGB模式
+    image = Image.open(image_stream).convert('RGB')
+    return image
 
 def find_closest_aspect_ratio(aspect_ratio, target_ratios, width, height, image_size):
     best_ratio_diff = float('inf')
@@ -217,7 +233,10 @@ def eval_model(args):
 
         else:
             ll = 1
-            image = load_image(image_file_path)
+            if "img_data" in ann:
+                image = load_image_from_base64(ann["img_data"])
+            else:
+                image = load_image(image_file_path)
             image_1 = image.copy()
             # image_1 = image_1.resize((1024, 1024))
 
@@ -294,7 +313,7 @@ def eval_model(args):
             # output_json['questionId'] = qs_id
             # output_json['question_id'] = qs_id
             output_json['image'] = ann["image"]
-            output_json['question'] = qs 
+            # output_json['question'] = qs 
             output_json['label'] = ann["conversations"][1]["value"]
             output_json['answer'] = outputs
         output_list.append(output_json)

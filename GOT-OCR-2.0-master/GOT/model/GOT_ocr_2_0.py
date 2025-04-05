@@ -26,7 +26,6 @@ class GOTQwenModel(Qwen2Model):
 
         self.mm_projector_vary =  nn.Linear(1024, 1024)
 
-
     def initialize_vision_modules(
         self, 
         vision_tower,
@@ -196,6 +195,7 @@ class GOTQwenModel(Qwen2Model):
 
             inputs_embeds = torch.stack(new_input_embeds, dim=0)
 
+            self.image_features_cache = image_features  # 缓存特征
         return super(GOTQwenModel, self).forward(
             input_ids=None, attention_mask=attention_mask, past_key_values=past_key_values,
             inputs_embeds=inputs_embeds, use_cache=use_cache, position_ids = position_ids,
@@ -215,6 +215,8 @@ class GOTQwenForCausalLM(Qwen2ForCausalLM):
 
         self.vocab_size = config.vocab_size
         self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
+
+        self.image_features_cache = None  # 新增特征缓存
 
         # Initialize weights and apply final processing
         self.post_init()

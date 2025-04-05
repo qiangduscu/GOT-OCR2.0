@@ -1,6 +1,7 @@
 benchmarks/
 dataset/
 output/
+eval_results/
 GOT_weights/
 GOT-OCR-2.0-master/GOT.egg-info/
 **/=*
