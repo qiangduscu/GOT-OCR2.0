@@ -12,6 +12,8 @@ from GOT.eval.eval_GOT_ocr import eval_model
 from GOT.demo.run_ocr_2_0 import eval_model as recognizer_model
 from argparse import Namespace
 import shutil
+import datetime
+import base64
 
 app = FastAPI()
 
@@ -76,6 +78,55 @@ async def image_ocr(
         result = recognizer_model(args)
         print("识别结果：", result)
         return result
+
+#接受用户纠正识别结果
+@app.post("/correct_chara", response_class=JSONResponse)
+async def correct_chara(
+    gt_data: str = Form(..., description="直接传递的JSON数据"), 
+    gt_file: str = Form("dataset/correct_chara.json"),
+    imgae_folder: str = Form("dataset/correct_chara"),
+):
+    try:
+        try:
+            with open(gt_file, 'r', encoding='utf-8') as f:
+                gts = json.load(f)
+        except json.JSONDecodeError:
+            gts = []
+
+        try:
+            gt_dict = json.loads(gt_data)
+        except json.JSONDecodeError as e:
+            return {"message": f"纠正失败：gt_data 格式错误: {str(e)}"}
+        
+        current_time = datetime.datetime.now().strftime('%Y-%m-%d-%H_%M_%S')
+        image_name = current_time + '_' + gt_dict['value'] + '.png'
+        if not os.path.exists(imgae_folder):
+            os.makedirs(imgae_folder)
+        image_path = os.path.join(imgae_folder, image_name)
+        if("img_data" in gt_dict):
+            with open(image_path, 'wb') as f:
+                f.write(base64.b64decode(gt_dict['img_data']))
+        
+        gts.append({
+            "image": image_path,
+            "conversations": [
+                {
+                    "from": "human",
+                    "value": "<image>\nOCR:"
+                },
+                {
+                    "from": "gpt",
+                    "value": gt_dict['value']
+                }
+            ]
+        })
+        with open(gt_file, 'w', encoding='utf-8') as f:
+            json.dump(gts, f, ensure_ascii=False)
+        
+        return {"message": "纠正成功！"}
+    except Exception as e:
+        return {"message": f"纠正失败：{str(e)}"}
+
 
 @app.post("/evaluate/", response_class=JSONResponse)
 async def evaluate(
@@ -160,4 +211,8 @@ async def evaluate(
             raise HTTPException(status_code=500, detail=f"服务器内部错误: {str(e)}")
     
     return StreamingResponse(generate_progress(), media_type="text/plain")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", reload=True)  # 确保重载机制正常工作
         
