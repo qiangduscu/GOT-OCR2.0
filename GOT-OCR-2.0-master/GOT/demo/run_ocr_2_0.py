@@ -46,8 +46,10 @@ def eval_model(args):
     disable_torch_init()
     model_name = os.path.expanduser(args.model_name)
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_name, 
+        trust_remote_code=True,
+    )
 
     model = GOTQwenForCausalLM.from_pretrained(model_name, low_cpu_mem_usage=True, device_map='cuda', use_safetensors=True, pad_token_id=151643).eval()
 
@@ -140,13 +142,27 @@ def eval_model(args):
             no_repeat_ngram_size = 20,
             streamer=streamer,
             max_new_tokens=4096,
-            stopping_criteria=[stopping_criteria]
-            )
+            stopping_criteria=[stopping_criteria],
+            return_dict_in_generate=True,
+            output_scores=True,  # 关键参数
+        )
         if not args.render:
             image_features = model.model.image_features_cache  # 直接获取缓存中的图片特征
             # print("image_features：", image_features)
+            # 解析概率数据
+            transition_scores = model.compute_transition_scores(
+                output_ids.sequences, output_ids.scores, normalize_logits=True
+            )
+
             print('==============outputs===============')
-            outputs = tokenizer.decode(output_ids[0, input_ids.shape[1]:]).strip()
+            # print("input_ids:", input_ids)
+            target_token_id = output_ids.sequences[0, input_ids.shape[1]:-1]
+            print("target_token_id", target_token_id)
+            outputs = tokenizer.decode(target_token_id).strip()
+
+            final_prob = torch.exp(transition_scores[0][-2]).item()
+            print(f"OCR结果: {outputs} 概率为 {final_prob:.4f}")
+
             return outputs
         
         if args.render:

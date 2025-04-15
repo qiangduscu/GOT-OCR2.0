@@ -180,7 +180,7 @@ def eval_model(args):
     if "OCR" in args.datatype:
             gts = get_chunk(gts, args.num_chunks, args.chunk_idx)
 
-
+    image_features_list = []
     for ann in tqdm(gts):
         output_json = {}
         
@@ -281,8 +281,10 @@ def eval_model(args):
                     # no_repeat_ngram_size = 20,
                     # streamer=streamer,
                     max_new_tokens=4096,
-                    stopping_criteria=[stopping_criteria]
-                    )
+                    stopping_criteria=[stopping_criteria],
+                    return_dict_in_generate=True, # 用于概率计算
+                    output_scores=True,  # 用于概率计算                    
+                )
         else:
             with torch.autocast("cuda", dtype=torch.bfloat16):
                 output_ids = model.generate(
@@ -296,15 +298,28 @@ def eval_model(args):
                     # penalty_alpha=0.2,
                     # top_k=3,
                     max_new_tokens=4096,
-                    stopping_criteria=[stopping_criteria]
-                    )
+                    stopping_criteria=[stopping_criteria],
+                    return_dict_in_generate=True, # 用于概率计算
+                    output_scores=True,  # 用于概率计算
+                )
+                features = model.model.image_features_cache[0]  # 直接获取缓存中的图片特征
+                features = features.mean(dim=1)  # 全局平均池化
+                image_features_list.append(features.cpu())
+                
+        transition_scores = model.compute_transition_scores(
+            output_ids.sequences, output_ids.scores, normalize_logits=True
+        )
 
-        outputs = tokenizer.decode(output_ids[0, input_ids.shape[1]:]).strip()
+        outputs = tokenizer.decode(output_ids.sequences[0, input_ids.shape[1]:]).strip()
         
         if outputs.endswith(stop_str):
             outputs = outputs[:-len(stop_str)]
         outputs = outputs.strip()
         # outputs = outputs.strip()[:-1]
+
+        final_prob = torch.exp(transition_scores[0][-2]).item()
+        # print(f"OCR结果: {outputs} 概率为 {final_prob:.4f}")
+
         if "Cap" in args.datatype:
             # output_json['image'] = ann["image"]
             output_json['image_id'] = ann["id"]
@@ -316,14 +331,19 @@ def eval_model(args):
             # output_json['question'] = qs 
             output_json['label'] = ann["conversations"][1]["value"]
             output_json['answer'] = outputs
+            output_json['prob'] = final_prob
         output_list.append(output_json)
 
     filename = args.out_path + "/results_" + str(args.chunk_idx) + ".json"
+    # 确保输出路径存在
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+
     with open(filename, 'w', encoding="utf-8") as file_obj:
         json.dump(output_list, file_obj, ensure_ascii=False, indent=1)
         # print(outputs)
     # print("Evaluate Results... ")
     # doc_text_eval(gts_path, filename, args.datatype)
+    return image_features_list, output_list
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
